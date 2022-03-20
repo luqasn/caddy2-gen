@@ -1,0 +1,34 @@
+version: '2'
+services:
+  caddy:
+    image: caddy:2.4.6
+    command: caddy run --watch --config /etc/caddy/Caddyfile
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - caddy-conf:/etc/caddy:ro
+      - caddy-data:/data/caddy
+    labels:
+      # in this example, this label is not important, but if you would have different networks
+      # for different containers, this annotation helps docker-gen see "from where" it needs to "see"
+      # the upstream container and thus can determine which network and port to use.
+      - "docker-gen.target"
+
+  dockergen:
+    image: nginxproxy/docker-gen
+    command: -watch /etc/docker-gen/templates/caddy.tmpl /etc/caddy/Caddyfile
+    volumes:
+      - /var/run/docker.sock:/tmp/docker.sock:ro
+      - ./Caddyfile.tmpl:/etc/docker-gen/templates/caddy.tmpl
+      - caddy-conf:/etc/caddy
+
+  whoami:
+    image: jwilder/whoami
+    labels:
+      - "virtual.host=test2.test *.test2.test *.*.test2.test"
+      - "virtual.tls=internal"
+
+volumes:
+  caddy-conf:
+  caddy-data:
